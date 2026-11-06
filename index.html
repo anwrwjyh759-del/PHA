@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صيدلية الأمل - متجر إلكتروني</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background-color: #eaeded; }
+    .amazon-header { background-color: #131921; }
+    .amazon-subnav { background-color: #232f3e; }
+    .amazon-btn { background-color: #ffd814; border-color: #fcd200; color: #0f1111; }
+    .amazon-btn:hover { background-color: #f7ca00; }
+    .amazon-btn-primary { background-color: #ffa41c; border-color: #ff8f00; color: #0f1111; }
+    .amazon-btn-primary:hover { background-color: #f3a847; }
+    .admin-badge { background-color: #cc0c39; color: white; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+  <!-- AUTH MODAL / SCREEN -->
+  <div id="authContainer" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+      <div class="amazon-header text-white p-6 text-center">
+        <h2 class="text-2xl font-bold flex items-center justify-center gap-2">
+          <i class="fa-solid font-bold text-amber-400 fa-prescription-bottle-medical"></i> صيدلية الأمل
+        </h2>
+        <p class="text-xs text-slate-300 mt-1">سجل دخولك أو أنشئ حساباً للمتابعة والتسوق</p>
+      </div>
+      
+      <div class="p-6">
+        <!-- Tab Switches -->
+        <div class="flex border-b mb-6">
+          <button id="tabLogin" onclick="switchAuthTab('login')" class="w-1/2 pb-3 font-bold text-amber-600 border-b-2 border-amber-500">تسجيل الدخول</button>
+          <button id="tabRegister" onclick="switchAuthTab('register')" class="w-1/2 pb-3 font-bold text-slate-500 hover:text-slate-800">حساب جديد</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">البريد الإلكتروني</label>
+            <input type="email" id="loginEmail" required class="w-full border p-2.5 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm" placeholder="name@example.com">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور</label>
+            <input type="password" id="loginPassword" required class="w-full border p-2.5 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm" placeholder="••••••••">
+          </div>
+          <button type="submit" class="w-full amazon-btn py-2.5 rounded font-bold text-sm shadow hover:shadow-md transition">دخول</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">البريد الإلكتروني</label>
+            <input type="email" id="regEmail" required class="w-full border p-2.5 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm" placeholder="name@example.com">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور (6 أحرف على الأقل)</label>
+            <input type="password" id="regPassword" minlength="6" required class="w-full border p-2.5 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm" placeholder="••••••••">
+          </div>
+          <button type="submit" class="w-full amazon-btn-primary py-2.5 rounded font-bold text-sm shadow hover:shadow-md transition">إنشاء حساب جديد</button>
+        </form>
+
+        <p id="authError" class="text-xs text-red-600 mt-3 text-center hidden font-bold"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP WRAPPER -->
+  <div id="mainApp" class="flex-grow flex flex-col hidden">
+    <!-- NAVBAR (Amazon Style) -->
+    <header class="sticky top-0 z-40">
+      <div class="amazon-header text-white px-4 py-2.5 flex items-center justify-between gap-4">
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-2 text-xl font-extrabold text-white">
+          <i class="fa-solid fa-prescription-bottle-medical text-amber-400 text-2xl"></i>
+          <span>صيدلية<span class="text-amber-400">الأمل</span></span>
+        </a>
+
+        <!-- Search Bar -->
+        <div class="flex-grow max-w-2xl hidden md:flex items-center">
+          <input type="text" id="searchInput" oninput="filterProducts()" placeholder="ابحث عن أدوية، فيتامينات، مستلزمات..." class="w-full py-2 px-3 rounded-r-md text-slate-900 focus:outline-none text-sm">
+          <button class="amazon-btn-primary px-5 py-2 rounded-l-md font-bold text-slate-900">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="flex items-center gap-3">
+          <!-- User Status -->
+          <div class="text-xs hidden sm:block text-slate-300">
+            <div>مرحباً،</div>
+            <div id="userDisplayEmail" class="font-bold text-white truncate max-w-[120px]">...</div>
+          </div>
+
+          <!-- Admin Login / Badge -->
+          <button onclick="toggleAdminModal()" id="adminNavBtn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs px-2.5 py-1.5 rounded border border-slate-700">
+            <i class="fa-solid fa-user-shield"></i>
+            <span id="adminNavText">لوحة الصيدلي</span>
+          </button>
+
+          <!-- Cart Icon -->
+          <button onclick="toggleCartModal()" class="relative flex items-center gap-1 text-white hover:text-amber-400">
+            <i class="fa-solid fa-cart-shopping text-2xl"></i>
+            <span id="cartCount" class="absolute -top-2 -right-2 bg-amber-500 text-slate-900 font-bold rounded-full w-5 h-5 flex items-center justify-center text-xs">0</span>
+          </button>
+
+          <!-- Logout Button -->
+          <button onclick="handleLogout()" class="text-xs bg-red-600/80 hover:bg-red-600 text-white px-2 py-1.5 rounded">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Search -->
+      <div class="amazon-header px-4 pb-2 md:hidden">
+        <input type="text" id="searchInputMobile" oninput="filterProductsMobile()" placeholder="ابحث عن منتج..." class="w-full py-1.5 px-3 rounded text-slate-900 text-sm">
+      </div>
+
+      <!-- Subnav Bar -->
+      <div class="amazon-subnav text-white text-xs px-4 py-1.5 flex items-center gap-4 overflow-x-auto">
+        <span class="font-bold flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-bars"></i> كافة المنتجات</span>
+        <span class="hover:text-amber-400 cursor-pointer">أدوية عامة</span>
+        <span class="hover:text-amber-400 cursor-pointer">فيتامينات ومكملات</span>
+        <span class="hover:text-amber-400 cursor-pointer">عناية بالبشرة</span>
+        <span class="hover:text-amber-400 cursor-pointer">مستلزمات أطفال</span>
+      </div>
+    </header>
+
+    <!-- HERO BANNER -->
+    <div class="bg-gradient-to-r from-teal-800 to-slate-900 text-white py-8 px-4 mb-6 shadow-inner">
+      <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <span class="bg-amber-500 text-slate-900 text-xs font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wide">خدمة صيدلية فورية</span>
+          <h1 class="text-3xl md:text-4xl font-extrabold mt-2">اطلب مستلزماتك الطبية وسنصلك فوراً!</h1>
+          <p class="text-slate-300 text-sm mt-1">حدد موقعك على الخريطة وسيصلك الدليفري في أسرع وقت بدون تعقيدات دفع.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-6xl mx-auto px-4 flex-grow w-full pb-12">
+      <!-- Admin Controls Panel (Visible only when logged into Admin) -->
+      <div id="adminPanel" class="bg-white rounded-lg shadow-md border-2 border-red-500 p-4 mb-8 hidden">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b">
+          <h2 class="text-lg font-bold text-red-600 flex items-center gap-2">
+            <i class="fa-solid fa-user-gear"></i> لوحة تحكم الصيدلي (الإدارة)
+          </h2>
+          <span class="text-xs bg-red-100 text-red-800 px-2.5 py-1 rounded-full font-bold">وضع المضيف مفعل</span>
+        </div>
+
+        <!-- Add Product Form -->
+        <form onsubmit="handleAddProduct(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm mb-6">
+          <input type="text" id="prodName" placeholder="اسم المنتج (مثال: منتج 1)" required class="border p-2 rounded">
+          <input type="number" id="prodPrice" placeholder="السعر (ج.م)" required class="border p-2 rounded">
+          <select id="prodCategory" class="border p-2 rounded">
+            <option value="أدوية عامة">أدوية عامة</option>
+            <option value="فيتامينات">فيتامينات</option>
+            <option value="عناية بالبشرة">عناية بالبشرة</option>
+          </select>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-slate-500 font-bold">صورة المنتج (من الجهاز):</label>
+            <input type="file" id="prodImageFile" accept="image/*" class="text-xs border p-1 rounded">
+          </div>
+          <button type="submit" class="md:col-span-4 amazon-btn font-bold py-2 rounded shadow">إضافة المنتج للمتجر</button>
+        </form>
+
+        <!-- Orders View Section -->
+        <div class="mt-6">
+          <h3 class="font-bold text-slate-800 mb-3 border-b pb-1">الطلبات الواردة في الوقت الفعلي (<span id="ordersCount">0</span>)</h3>
+          <div id="ordersList" class="space-y-3 max-h-80 overflow-y-auto">
+            <!-- Orders injected dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS SECTION -->
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-slate-800 border-r-4 border-amber-500 pr-2">المنتجات المتاحة</h2>
+      </div>
+
+      <!-- Products Grid -->
+      <div id="productsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <!-- Dynamic Products injected here -->
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="amazon-header text-slate-400 text-xs py-6 mt-auto">
+      <div class="max-w-6xl mx-auto px-4 text-center space-y-2">
+        <p class="text-slate-300">صيدلية الأمل © 2026 - جميع الحقوق محفوظة أنور وجيه</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- CART & CHECKOUT MODAL -->
+  <div id="cartModal" class="fixed inset-0 bg-slate-900/60 z-50 flex justify-end hidden">
+    <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+      <div class="amazon-header text-white p-4 flex justify-between items-center">
+        <h3 class="font-bold text-lg"><i class="fa-solid fa-cart-shopping text-amber-400"></i> سلة التسوق</h3>
+        <button onclick="toggleCartModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Cart Items -->
+      <div id="cartItems" class="flex-grow overflow-y-auto p-4 space-y-3 divide-y">
+        <!-- Cart items injected here -->
+      </div>
+
+      <!-- Checkout Form -->
+      <div class="p-4 bg-slate-50 border-t space-y-3">
+        <div class="flex justify-between font-bold text-base text-slate-800">
+          <span>الإجمالي:</span>
+          <span id="cartTotal">0 ج.م</span>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t text-xs">
+          <div>
+            <label class="font-bold block mb-1">اسم العميل:</label>
+            <input type="text" id="orderCustomerName" required class="w-full border p-2 rounded" placeholder="الاسم ثلاثي">
+          </div>
+          <div>
+            <label class="font-bold block mb-1">رقم الهاتف:</label>
+            <input type="tel" id="orderCustomerPhone" required class="w-full border p-2 rounded" placeholder="01xxxxxxxxx">
+          </div>
+          
+          <!-- Location Pickers -->
+          <div>
+            <label class="font-bold block mb-1">عنوان التوصيل:</label>
+            <textarea id="orderAddress" required class="w-full border p-2 rounded" rows="2" placeholder="اسم الشارع، رقم العمارة، الشقة..."></textarea>
+          </div>
+
+          <div>
+            <button type="button" onclick="getCurrentLocation()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-1.5 rounded flex items-center justify-center gap-1">
+              <i class="fa-solid fa-location-crosshairs"></i> تحديد موقعي الحالي تلقائياً (GPS)
+            </button>
+            <p id="locationStatus" class="text-[10px] text-slate-500 mt-1 text-center"></p>
+          </div>
+        </div>
+
+        <button onclick="submitOrder()" class="w-full amazon-btn-primary font-bold py-3 rounded shadow text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-paper-plane"></i> إرسال الطلب للصيدلية فوراً
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PASSCODE MODAL -->
+  <div id="adminPassModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 space-y-4">
+      <h3 class="font-bold text-slate-800 border-b pb-2">لوحة الصيدلي - رمز الدخول</h3>
+      <input type="password" id="adminPassInput" class="w-full border p-2.5 rounded text-center text-lg tracking-widest" placeholder="أدخل الرقم السري">
+      <div class="flex gap-2">
+        <button onclick="verifyAdminPass()" class="w-full amazon-btn py-2 rounded font-bold">دخول</button>
+        <button onclick="toggleAdminModal()" class="w-full bg-slate-200 py-2 rounded font-bold">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Integration Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAGvx2KqOXoAj1ScZDr8KZaiP6KotHPmy4",
+      authDomain: "venom-e2527.firebaseapp.com",
+      projectId: "venom-e2527",
+      storageBucket: "venom-e2527.firebasestorage.app",
+      messagingSenderId: "687669434577",
+      appId: "1:687669434577:web:00327ad3019aefe3148df0",
+      measurementId: "G-BT9PTR2CNX",
+      databaseURL: "https://venom-e2527-default-rtdb.firebaseio.com"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // Global App State
+    window.state = {
+      user: null,
+      isAdmin: false,
+      cart: [],
+      products: {},
+      orders: {},
+      userLocation: null
+    };
+
+    // --- AUTHENTICATION LISTENERS ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.state.user = user;
+        document.getElementById('authContainer').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('userDisplayEmail').innerText = user.email;
+        listenToFirebase();
+      } else {
+        window.state.user = null;
+        document.getElementById('authContainer').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+      }
+    });
+
+    // Auth Handlers
+    window.switchAuthTab = (tab) => {
+      const isLogin = tab === 'login';
+      document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+      document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+      document.getElementById('tabLogin').className = isLogin ? 'w-1/2 pb-3 font-bold text-amber-600 border-b-2 border-amber-500' : 'w-1/2 pb-3 font-bold text-slate-500';
+      document.getElementById('tabRegister').className = !isLogin ? 'w-1/2 pb-3 font-bold text-amber-600 border-b-2 border-amber-500' : 'w-1/2 pb-3 font-bold text-slate-500';
+    };
+
+    window.handleLogin = async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('authError');
+      errEl.classList.add('hidden');
+      try {
+        await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
+      } catch (err) {
+        errEl.innerText = "خطأ في تسجيل الدخول: " + err.message;
+        errEl.classList.remove('hidden');
+      }
+    };
+
+    window.handleRegister = async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('authError');
+      errEl.classList.add('hidden');
+      try {
+        await createUserWithEmailAndPassword(auth, document.getElementById('regEmail').value, document.getElementById('regPassword').value);
+      } catch (err) {
+        errEl.innerText = "خطأ في إنشاء الحساب: " + err.message;
+        errEl.classList.remove('hidden');
+      }
+    };
+
+    window.handleLogout = () => signOut(auth);
+
+    // --- FIREBASE REALTIME SYNC ---
+    function listenToFirebase() {
+      // Seed default items if empty
+      const prodRef = ref(db, 'products');
+      onValue(prodRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+          // Seed initial products
+          const defaults = {
+            p1: { name: "منتج 1 (مسكن آلام)", price: 25, category: "أدوية عامة", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300" },
+            p2: { name: "منتج 2 (فيتامين سي)", price: 45, category: "فيتامينات", image: "https://images.unsplash.com/photo-1577401239170-897942555fb3?w=300" },
+            p3: { name: "منتج 3 (مرطب للبشرة)", price: 80, category: "عناية بالبشرة", image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300" }
+          };
+          set(prodRef, defaults);
+        } else {
+          window.state.products = data;
+          renderProducts();
+        }
+      });
+
+      // Orders Realtime Sync
+      onValue(ref(db, 'orders'), (snapshot) => {
+        window.state.orders = snapshot.val() || {};
+        renderOrders();
+      });
+    }
+
+    // --- RENDER PRODUCTS ---
+    function renderProducts(filterText = "") {
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = "";
+
+      Object.entries(window.state.products).forEach(([id, prod]) => {
+        if (filterText && !prod.name.toLowerCase().includes(filterText.toLowerCase())) return;
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded border border-slate-200 p-3 flex flex-col justify-between hover:shadow-lg transition relative";
+        
+        card.innerHTML = `
+          ${window.state.isAdmin ? `
+            <button onclick="deleteProduct('${id}')" title="حذف المنتج" class="absolute top-2 left-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs shadow z-10 hover:bg-red-700">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+          <div>
+            <div class="h-36 w-full flex items-center justify-center overflow-hidden mb-2 bg-slate-50 rounded">
+              <img src="${prod.image || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300'}" class="object-contain h-full w-full" alt="${prod.name}">
+            </div>
+            <span class="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">${prod.category || 'عام'}</span>
+            <h3 class="font-bold text-sm text-slate-800 mt-1 line-clamp-2">${prod.name}</h3>
+          </div>
+          <div class="mt-3 pt-2 border-t flex items-center justify-between">
+            <span class="font-extrabold text-base text-slate-900">${prod.price} <span class="text-xs">ج.م</span></span>
+            <button onclick="addToCart('${id}')" class="amazon-btn text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 shadow">
+              <i class="fa-solid fa-cart-plus"></i> أضف
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    window.filterProducts = () => {
+      const val = document.getElementById('searchInput').value;
+      renderProducts(val);
+    };
+
+    window.filterProductsMobile = () => {
+      const val = document.getElementById('searchInputMobile').value;
+      renderProducts(val);
+    };
+
+    // --- ADD / DELETE PRODUCT (ADMIN) ---
+    window.handleAddProduct = (e) => {
+      e.preventDefault();
+      const name = document.getElementById('prodName').value;
+      const price = parseFloat(document.getElementById('prodPrice').value);
+      const category = document.getElementById('prodCategory').value;
+      const fileInput = document.getElementById('prodImageFile');
+
+      const save = (imgUrl) => {
+        const newRef = push(ref(db, 'products'));
+        set(newRef, { name, price, category, image: imgUrl });
+        e.target.reset();
+        alert('تمت إضافة المنتج بنجاح!');
+      };
+
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (event) => save(event.target.result);
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        save("https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300");
+      }
+    };
+
+    window.deleteProduct = (id) => {
+      if (confirm('هل أنت تأكد من حذف هذا المنتج؟')) {
+        remove(ref(db, `products/${id}`));
+      }
+    };
+
+    // --- CART ACTIONS ---
+    window.addToCart = (id) => {
+      const prod = window.state.products[id];
+      if (!prod) return;
+
+      const existing = window.state.cart.find(item => item.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        window.state.cart.push({ id, name: prod.name, price: prod.price, qty: 1 });
+      }
+      updateCartUI();
+    };
+
+    function updateCartUI() {
+      const count = window.state.cart.reduce((acc, item) => acc + item.qty, 0);
+      document.getElementById('cartCount').innerText = count;
+
+      const container = document.getElementById('cartItems');
+      container.innerHTML = "";
+      let total = 0;
+
+      window.state.cart.forEach((item, index) => {
+        total += item.price * item.qty;
+        const row = document.createElement('div');
+        row.className = "py-2 flex justify-between items-center text-xs";
+        row.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800">${item.name}</div>
+            <div class="text-slate-500">${item.price} ج.م × ${item.qty}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-amber-700">${item.price * item.qty} ج.م</span>
+            <button onclick="removeFromCart(${index})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById('cartTotal').innerText = `${total} ج.م`;
+    }
+
+    window.removeFromCart = (index) => {
+      window.state.cart.splice(index, 1);
+      updateCartUI();
+    };
+
+    window.toggleCartModal = () => {
+      document.getElementById('cartModal').classList.toggle('hidden');
+    };
+
+    // --- GEOLOCATION LOCATION PICKER ---
+    window.getCurrentLocation = () => {
+      const status = document.getElementById('locationStatus');
+      status.innerText = "جاري تحديد موقعك الجغرافي...";
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            window.state.userLocation = { lat, lng };
+            status.innerText = `تم تحديد الموقع بنجاح! (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+            document.getElementById('orderAddress').value += ` [موقع GPS محدد]`;
+          },
+          (err) => {
+            status.innerText = "تعذر جلب الموقع. يرجى تفعيل الـ GPS في جهازك.";
+          }
+        );
+      } else {
+        status.innerText = "متصفحك لا يدعم تحديد الموقع.";
+      }
+    };
+
+    // --- SUBMIT ORDER ---
+    window.submitOrder = () => {
+      if (window.state.cart.length === 0) {
+        alert('سلة التسوق فارغة!');
+        return;
+      }
+
+      const name = document.getElementById('orderCustomerName').value;
+      const phone = document.getElementById('orderCustomerPhone').value;
+      const address = document.getElementById('orderAddress').value;
+
+      if (!name || !phone || !address) {
+        alert('يرجى ملء كافة البيانات المطلوبة.');
+        return;
+      }
+
+      const newOrderRef = push(ref(db, 'orders'));
+      set(newOrderRef, {
+        customerName: name,
+        customerPhone: phone,
+        address: address,
+        location: window.state.userLocation || null,
+        items: window.state.cart,
+        total: window.state.cart.reduce((a, b) => a + (b.price * b.qty), 0),
+        userEmail: window.state.user.email,
+        timestamp: Date.now()
+      });
+
+      window.state.cart = [];
+      updateCartUI();
+      toggleCartModal();
+      alert('تم إرسال طلبك لصاحب الصيدلية بنجاح!');
+    };
+
+    // --- RENDER ORDERS (ADMIN) ---
+    function renderOrders() {
+      const container = document.getElementById('ordersList');
+      const entries = Object.entries(window.state.orders);
+      document.getElementById('ordersCount').innerText = entries.length;
+      container.innerHTML = "";
+
+      if (entries.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">لا يوجد طلبات واردة حتى الآن.</p>`;
+        return;
+      }
+
+      entries.reverse().forEach(([id, order]) => {
+        const itemNames = order.items ? order.items.map(i => `${i.name} (×${i.qty})`).join(', ') : '';
+        const mapUrl = order.location ? `https://www.google.com/maps?q=${order.location.lat},${order.location.lng}` : null;
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-50 border rounded p-3 text-xs space-y-1.5 relative";
+        card.innerHTML = `
+          <div class="flex justify-between items-center font-bold text-slate-800">
+            <span>العميل: ${order.customerName} (${order.customerPhone})</span>
+            <span class="text-amber-600 font-extrabold text-sm">${order.total} ج.م</span>
+          </div>
+          <div class="text-slate-600"><strong>العنوان:</strong> ${order.address}</div>
+          <div class="text-slate-600"><strong>المنتجات:</strong> ${itemNames}</div>
+          
+          <div class="flex items-center justify-between pt-2">
+            ${mapUrl ? `
+              <a href="${mapUrl}" target="_blank" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-3 py-1 rounded flex items-center gap-1">
+                <i class="fa-solid fa-map-location-dot"></i> فتح الموقع على الخريطة
+              </a>
+            ` : '<span class="text-slate-400 italic">لم يتم تحديد موقع GPS</span>'}
+
+            <button onclick="deleteOrder('${id}')" class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1 rounded">
+              تم التوصيل / إكمال
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    window.deleteOrder = (id) => {
+      remove(ref(db, `orders/${id}`));
+    };
+
+    // --- ADMIN PASSCODE VERIFICATION ---
+    window.toggleAdminModal = () => {
+      if (window.state.isAdmin) {
+        window.state.isAdmin = false;
+        document.getElementById('adminPanel').classList.add('hidden');
+        document.getElementById('adminNavText').innerText = "لوحة الصيدلي";
+        renderProducts();
+      } else {
+        document.getElementById('adminPassModal').classList.remove('hidden');
+      }
+    };
+
+    window.verifyAdminPass = () => {
+      const pass = document.getElementById('adminPassInput').value;
+      if (pass === "250746") {
+        window.state.isAdmin = true;
+        document.getElementById('adminPassModal').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('adminNavText').innerText = "خروج من الإدارة";
+        renderProducts();
+        document.getElementById('adminPassInput').value = "";
+      } else {
+        alert('الرقم السري غير صحيح!');
+      }
+    };
+  </script>
+</body>
+</html>
